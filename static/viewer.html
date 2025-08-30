@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>WebRTC Viewer</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; }
+  video { width: min(90vw, 960px); max-height: 80vh; background:#000; }
+  input, button { font-size: 1rem; padding: .4rem .6rem; }
+</style>
+<h1>Viewer</h1>
+<label>camId: <input id="camId" value="cam"/></label>
+<button id="start">Start</button>
+<p id="status"></p>
+<video id="video" autoplay playsinline controls></video>
+
+<script>
+async function start() {
+  const camId = document.getElementById('camId').value || 'cam';
+  const pc = new RTCPeerConnection({
+    // Add a STUN server if you’ll cross NATs:
+    // iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  });
+
+  pc.onconnectionstatechange = () => {
+    document.getElementById('status').textContent = 'state: ' + pc.connectionState;
+  };
+
+  pc.ontrack = (e) => {
+    document.getElementById('video').srcObject = e.streams[0];
+  };
+
+  // We are a pure viewer: no local tracks, just receive
+  // Create and send an offer to /offer/viewer
+  const offer = await pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: false });
+  await pc.setLocalDescription(offer);
+
+  const r = await fetch('/offer/viewer', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type, camId }),
+  });
+  const data = await r.json();
+  if (data.error) {
+    document.getElementById('status').textContent = data.error;
+    return;
+  }
+  await pc.setRemoteDescription({ sdp: data.sdp, type: data.type });
+}
+document.getElementById('start').onclick = start;
+</script>

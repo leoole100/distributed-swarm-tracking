@@ -1,0 +1,181 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Camera Publisher</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 1.5rem; }
+  label { margin-right: .75rem; }
+  video { width: min(90vw, 720px); max-height: 80vh; background: #000; display: block; margin-top: 1rem; }
+  button, select, input { font-size: 1rem; padding: .4rem .6rem; }
+</style>
+<h1>Camera Stream – Publisher</h1>
+
+<label>camId: <input id="camid" value="phone-1"></label>
+<label>Camera:
+  <select id="whichcam">
+    <option value="environment">Back (environment)</option>
+    <option value="user">Front (selfie)</option>
+  </select>
+</label>
+<button id="start">Start</button>
+<button id="stop" disabled>Stop</button>
+<p id="status"></p>
+<video id="preview" autoplay playsinline muted></video>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let pc = null;
+let stream = null;
+let reconnectTimer = null;
+
+function log(s) {
+  console.log(s);
+  $("status").textContent = s;
+}
+
+async function getMedia() {
+  const facingMode = $("whichcam").value; // 'environment' or 'user'
+  // Adjust constraints as needed (resolution, fps, etc.)
+  const constraints = {
+    video: { facingMode },
+    audio: false
+  };
+  return await navigator.mediaDevices.getUserMedia(constraints);
+}
+
+async function start() {
+  $("start").disabled = true;
+  $("stop").disabled = false;
+
+  const camId = $("camid").value || "cam";
+  try {
+    stream = await getMedia();
+    $("preview").srcObject = stream;
+
+    pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    });
+
+    // Helpful logs
+    pc.oniceconnectionstatechange = () => log("ice: " + pc.iceConnectionState);
+    pc.onconnectionstatechange = async () => {
+      log("pc: " + pc.connectionState);
+      if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+        // try a gentle ICE restart once
+        try {
+          await restartIce(camId);
+        } catch (e) {
+          console.warn("ICE restart failed:", e);
+        }
+      }
+    };
+
+    // Add tracks
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+    // Initial negotiation
+    await negotiate(camId);
+
+    // If a track is replaced (e.g., camera switch), renegotiate
+    pc.onnegotiationneeded = async () => {
+      try {
+        await negotiate(camId);
+      } catch (e) { console.warn("renegotiate failed:", e); }
+    };
+
+    // Reconnect on visibility change (mobile browsers sometimes pause radio)
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible" && pc && pc.connectionState !== "connected") {
+        try { await restartIce(camId); } catch (e) {}
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    log("Error: " + err.message);
+    $("start").disabled = false;
+    $("stop").disabled = true;
+  }
+}
+
+async function negotiate(camId) {
+  // We are the publisher → createOffer and send to /offer/publisher
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const resp = await fetch("/offer/publisher", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type, camId })
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error("Server error: " + txt);
+  }
+  const answer = await resp.json();
+  await pc.setRemoteDescription(answer);
+  log("Publishing camId=" + camId + " ✅");
+}
+
+async function restartIce(camId) {
+  if (!pc) return;
+  log("Attempting ICE restart…");
+  const offer = await pc.createOffer({ iceRestart: true });
+  await pc.setLocalDescription(offer);
+
+  const resp = await fetch("/offer/publisher", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ sdp: offer.sdp, type: offer.type, camId })
+  });
+  if (!resp.ok) throw new Error("restartIce server error");
+  const answer = await resp.json();
+  await pc.setRemoteDescription(answer);
+  log("ICE restarted");
+}
+
+async function stop() {
+  $("stop").disabled = true;
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  try { if (pc) await pc.close(); } catch {}
+  pc = null;
+
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  $("preview").srcObject = null;
+
+  $("start").disabled = false;
+  log("Stopped");
+}
+
+$("start").onclick = start;
+$("stop").onclick = stop;
+
+// Allow switching cameras on the fly: stop current, grab new stream, replace track
+$("whichcam").addEventListener("change", async () => {
+  if (!pc || !stream) return;
+  const oldVideo = stream.getVideoTracks()[0];
+  const newStream = await getMedia();
+  const newVideo = newStream.getVideoTracks()[0];
+
+  // Replace sender track to avoid rebuilding the connection
+  const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+  if (sender) await sender.replaceTrack(newVideo);
+
+  // Update local preview and stop old track
+  $("preview").srcObject = newStream;
+  oldVideo.stop();
+  // swap references
+  stream = newStream;
+});
+
+// Clean up on page unload (mobile browsers)
+window.addEventListener("beforeunload", stop);
+</script>
