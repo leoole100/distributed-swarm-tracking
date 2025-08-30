@@ -1,0 +1,11 @@
+*.pdf binary
+*.png binary
+*.jpg binary
+*.svg binary
+*.pickle binary
+*.dll binary
+*.FCStd binary
+*.stl binary
+*.dat binary
+*.csv binary
+/data/** binary

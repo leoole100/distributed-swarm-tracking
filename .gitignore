@@ -1,0 +1,34 @@
+__pycache__
+.venv
+.vscode
+
+# latex files
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.bbl
+*.bcf
+*.run.xml
+*.blg
+*.bbl-SAVE-ERROR
+*.bcf-SAVE-ERROR
+*.synctex(busy)
+*.nav
+*.snm
+*.toc
+**/.fuse_hidden*
+*.tmp
+
+*.kate-swp
+
+**/literature
+
+*.FCBak
+
+# libreoffice locks
+*.~lock.*
+
+/orga
