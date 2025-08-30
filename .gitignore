@@ -32,3 +32,6 @@ __pycache__
 *.~lock.*
 
 /orga
+
+#keys
+*.pem 
