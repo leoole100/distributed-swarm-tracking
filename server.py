@@ -1,30 +1,10 @@
 from aiohttp import web
-from typing import Set
-import asyncio
 import ssl
-from datetime import datetime
 
-ws_clients: Set[web.WebSocketResponse] = set()
-
-async def time_handler(req: web.Request):
-    ws = web.WebSocketResponse()
-    await ws.prepare(req)
-
-    ws_clients.add(ws)
-    try:
-        async for msg in ws:
-            if msg.type != web.WSMsgType.ERROR:
-                if msg.type == web.WSMsgType.TEXT and msg.data.strip() == "time":
-                    timestamp = datetime.now().timestamp()
-                    await ws.send_str(f"{timestamp:.6f}")
-    finally:
-        ws_clients.discard(ws)
-    
-    return ws
+from time_server import time_handler
 
 async def index(_):
     return web.FileResponse("static/index.html")
-
 
 app = web.Application()
 app.add_routes([

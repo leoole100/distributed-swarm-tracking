@@ -35,9 +35,11 @@
 </body>
 </html>
 
-<script>
-const ws = new WebSocket(`wss://${location.host}/time`);
 
+<script src="time.js"></script>
+
+<script>
+    
 const pingSpan = document.getElementById("ping");
 const offsetChangeSpan = document.getElementById("offsetChange");
 const currentTimeSpan = document.getElementById("currentTime");
@@ -51,29 +53,6 @@ let offsetAdjustments = [];
 
 // Flag to indicate if the initial sync has been performed.
 let initialSync = true;
-
-const timeSync = {
-    offset: 0,
-    sync: function() {
-        return new Promise((resolve) => {
-            const start = performance.now() / 1000;
-            ws.send("time");
-            ws.addEventListener("message", function handler(event) {
-                const end = performance.now() / 1000;
-                const ping = end - start; // seconds
-                const serverTime = Number(event.data);
-                const computedOffset = serverTime - ((start + end) / 2);
-                const offsetChange = computedOffset - timeSync.offset;
-                timeSync.offset = computedOffset;
-                ws.removeEventListener("message", handler);
-                resolve({ ping: ping, offsetChange: offsetChange });
-            });
-        });
-    },
-    currentTime: function() {
-        return (performance.now() / 1000) + this.offset;
-    }
-};
 
 function updateRMSDisplay(newOffsetChange) {
     // Add the new offset change value to the array
