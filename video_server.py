@@ -1,113 +1,63 @@
-#!/usr/bin/env python3
-import argparse
-import asyncio
-import json
-import os
-import uuid
-from datetime import datetime
-from pathlib import Path
-
+import asyncio, json
 from aiohttp import web
-from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer
-from aiortc.contrib.media import MediaBlackhole, MediaRecorder
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCIceCandidate
+from aiortc.contrib.media import MediaBlackhole
+from aiortc.sdp import candidate_from_sdp
+import uuid
 
-# Keep references so connections don't get GC'd
-pcs: set[RTCPeerConnection] = set()
-
+pcs = set()
 
 async def offer(request: web.Request):
-    """
-    Receive an SDP offer from a client, create a PeerConnection on the server,
-    attach handlers for incoming tracks, and reply with an SDP answer.
-    """
-    params = await request.json()
-    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
 
-    pc = RTCPeerConnection(
-        RTCConfiguration(
-            iceServers=[RTCIceServer("stun:stun.l.google.com:19302")]
-            # For reliability across networks, add TURN:
-            # iceServers=[RTCIceServer(urls="turn:your.turn:3478", username="u", credential="p")]
-        )
-    )
+    pc = RTCPeerConnection()
     pcs.add(pc)
-    print(f"Created PeerConnection {id(pc)} (total: {len(pcs)})")
-
-    # Per-connection recorders (or blackholes)
-    recorders = []
-
-    @pc.on("connectionstatechange")
-    async def on_connectionstatechange():
-        print(f"PC {id(pc)} state -> {pc.connectionState}")
-        if pc.connectionState in ("failed", "closed", "disconnected"):
-            await cleanup_pc(pc, recorders)
 
     @pc.on("track")
     def on_track(track):
-        print(f"PC {id(pc)}: Track {track.kind} received")
+        print("track:", track.kind)
 
-        blackhole = MediaBlackhole()
-        recorders.append(blackhole)
-        asyncio.create_task(blackhole.start())
-        asyncio.create_task(pipe_track(track, blackhole, pc))
+        id = str(uuid.uuid4())
+        
+        async def pump():
+            try:
+                while True:
+                    frame = await track.recv()
+                    print(id, frame)
+            except:
+                pass
+        asyncio.create_task(pump())
 
-        @track.on("ended")
-        async def on_ended():
-            print(f"PC {id(pc)}: Track {track.kind} ended")
+    async for msg in ws:
+        if msg.type != web.WSMsgType.TEXT:
+            continue
+        data = json.loads(msg.data)
 
-    # Apply the remote description (from client) and create/send answer
-    await pc.setRemoteDescription(offer)
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
+        if data["type"] == "offer":
+            await pc.setRemoteDescription(RTCSessionDescription(sdp=data["sdp"], type="offer"))
+            answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+            await ws.send_str(json.dumps({
+                "type": "answer",
+                "sdp": pc.localDescription.sdp
+            }))
 
-    # Return the answer
-    return web.json_response(
-        {
-            "sdp": pc.localDescription.sdp,
-            "type": pc.localDescription.type,
-        }
-    )
+        elif data["type"] == "candidate":
+            # data looks like:
+            # { "type":"candidate", "candidate":"candidate:...", "sdpMid":"0", "sdpMLineIndex":0 }
+            c = candidate_from_sdp(data["candidate"])
+            c.sdpMid = data.get("sdpMid")
+            c.sdpMLineIndex = data.get("sdpMLineIndex")
+            await pc.addIceCandidate(c)
 
-async def pipe_track(track, sink, pc: RTCPeerConnection):
-    """
-    Read frames/packets from an incoming track and feed them to the sink (recorder or blackhole).
-    This lets us easily stop/close the sink when the track ends or the pc closes.
-    """
-    try:
-        while True:
-            frame = await track.recv()
-            await sink.write(frame)
-    except Exception as e:
-        # Usually ends with asyncio.CancelledError or when the track/pc closes
-        pass
-    finally:
-        # A track finished; if all tracks done, you can decide to stop the sink here.
-        # We leave stopping to cleanup so multi-track recorders close together.
-        ...
+        elif data["type"] == "end_of_candidates":
+            await pc.addIceCandidate(None)
 
-async def cleanup_pc(pc: RTCPeerConnection, recorders):
-    # Gracefully stop recorders/sinks
-    for r in recorders:
-        try:
-            await r.stop()
-        except Exception:
-            pass
+        elif data["type"] == "bye":
+            break
 
-    # Close the PeerConnection
-    try:
-        await pc.close()
-    except Exception:
-        pass
-
-    if pc in pcs:
-        pcs.discard(pc)
-    print(f"Closed PC {id(pc)} (remaining: {len(pcs)})")
-
-async def on_shutdown(app: web.Application):
-    # Close all PCs on server shutdown
-    coros = []
-    for pc in list(pcs):
-        coros.append(cleanup_pc(pc, []))
-    if coros:
-        await asyncio.gather(*coros, return_exceptions=True)
+    await pc.close()
+    pcs.discard(pc)
+    await ws.close()
+    return ws
