@@ -14,8 +14,9 @@ openssl req -x509 -nodes -newkey rsa:2048 \
         - revisit once RTC Data streams work. Implement 4 timestamps, best of, and PLL.
     3. Video Stream
         1. ~~get the publishing of the feeds to work~~
-        2. add time stamping
+        2. ~~add time stamping~~
         3. add a option to preview the video feeds
+    4. add recording and file readers.
 2. try preprocessing, projection and detection algorithms offline. 
 3. speed up the algorithms to run in real time and implement them to interface with the rest. 
 4. just save the tracking data, to enable longer observations.
