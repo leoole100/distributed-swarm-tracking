@@ -6,7 +6,7 @@ from datetime import datetime
 
 ws_clients: Set[web.WebSocketResponse] = set()
 
-async def ws_handler(req: web.Request):
+async def time_handler(req: web.Request):
     ws = web.WebSocketResponse()
     await ws.prepare(req)
 
@@ -29,7 +29,7 @@ async def index(_):
 app = web.Application()
 app.add_routes([
     web.get("/", index),
-    web.get("/ws", ws_handler),
+    web.get("/time", time_handler),
     web.static("/", "static"),
 ])
 

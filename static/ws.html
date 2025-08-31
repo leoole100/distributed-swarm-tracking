@@ -5,40 +5,93 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-<h1>WS Test</h1>
-<input id="msg" placeholder="type a message">
-<button id="send">Send</button>
-<p></p>
+    <h1>WS Test</h1>
+    
+    <label for="endpoint">WS Endpoint:</label>
+    <input id="endpoint" placeholder="ws">
+    <button id="connect">Connect</button>
+    <button id="disconnect">Disconnect</button>
+    
+    <br><br>
+    
+    <input id="msg" placeholder="type a message" disabled>
+    <button id="send" disabled>Send</button>
+    
+    <p></p>
 
-<label for="log">Received:</label><br>
-<samp id="log"></samp>
-
+    <label for="log">Received:</label><br>
+    <samp id="log"></samp>
+    
 </body>
 </html>
 
 <script>
-const ws = new WebSocket(`wss://${location.host}/ws`);
+let ws = null;
+const out_log = document.getElementById("log");
+const inp_msg = document.getElementById("msg");
+const btn_send = document.getElementById("send");
+const btn_connect = document.getElementById("connect");
+const btn_disconnect = document.getElementById("disconnect");
+const inp_endpoint = document.getElementById("endpoint");
 
-const out_log = document.getElementById("log")
-const inp_msg = document.getElementById("msg")
-const btn_send = document.getElementById("send")
-
-
-function log(str){
+function log(str) {
     out_log.innerHTML = str + '<br>' + out_log.innerHTML;
 }
 
-ws.onmessage = ev => {log(ev.data)};
-
-const send = () => {
-    ws.send(inp_msg.value)
+function setupWS() {
+    ws.onmessage = ev => { log(ev.data); };
+    ws.onclose = () => {
+        log("WebSocket closed");
+        btn_send.disabled = true;
+        inp_msg.disabled = true;
+    };
+    ws.onopen = () => {
+        log("WebSocket connected");
+        btn_send.disabled = false;
+        inp_msg.disabled = false;
+    };
+    ws.onerror = err => {
+        log("WebSocket error");
+    };
 }
 
-btn_send.onclick = send
+function connect() {
+    const endpoint = inp_endpoint.value.trim();
+    if (!endpoint) {
+        alert("Please enter a WS endpoint");
+        return;
+    }
+    // Close existing connection if any.
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        ws.close();
+    }
+    ws = new WebSocket(`wss://${location.host}/${endpoint}`);
+    setupWS();
+}
+
+function disconnect() {
+    if (ws) {
+        ws.close();
+    }
+}
+
+function send() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(inp_msg.value);
+        inp_msg.value = "";
+    } else {
+        alert("WebSocket is not connected");
+    }
+}
+
+btn_connect.onclick = connect;
+btn_disconnect.onclick = disconnect;
+btn_send.onclick = send;
+
+// Allow sending message on Enter key press
 inp_msg.addEventListener("keypress", function(e) {
     if (e.key === 'Enter' || e.keyCode === 13) {
         send();
     }
 });
-
 </script>

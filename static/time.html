@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WS Test</title>
+    <title>Time Synchronization</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-<h1>WS Test</h1>
+<h1>Time Synchronization</h1>
 <button id="sync">Sync</button>
 <input type="checkbox" id="autoSync" checked>
 <label for="autoSync">Auto Sync</label>
@@ -36,7 +36,7 @@
 </html>
 
 <script>
-const ws = new WebSocket(`wss://${location.host}/ws`);
+const ws = new WebSocket(`wss://${location.host}/time`);
 
 const pingSpan = document.getElementById("ping");
 const offsetChangeSpan = document.getElementById("offsetChange");
