@@ -1,6 +1,6 @@
 const timeSync = {
     offset: 0,
-    ws: new WebSocket(`wss://${location.host}/time`),
+    ws: new WebSocket(`wss://${location.host}/api/time`),
     sync: function() {
         return new Promise((resolve) => {
             const start = performance.now() / 1000;

@@ -26,3 +26,7 @@ body {
 pre, samp, input {
 	font-family: 'Roboto Mono', monospace;
 }
+
+video {
+	width: 100%;
+}

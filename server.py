@@ -2,6 +2,7 @@ from aiohttp import web
 import ssl
 
 from time_server import time_handler
+import video_server as vs
 
 async def index(_):
     return web.FileResponse("static/index.html")
@@ -9,8 +10,13 @@ async def index(_):
 app = web.Application()
 app.add_routes([
     web.get("/", index),
-    web.get("/time", time_handler),
     web.static("/", "static"),
+
+    web.get("/api/time", time_handler),
+
+    web.post("/api/webrtc/publish", vs.offer),
+    # web.post("/api/webrtc/view", vs.view_offer),
+    # web.get("/api/webrtc/stats", vs.stats),
 ])
 
 
