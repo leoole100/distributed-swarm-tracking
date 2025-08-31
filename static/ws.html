@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WS Test</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<h1>WS Test</h1>
+<input id="msg" placeholder="type a message">
+<button id="send">Send</button>
+<p></p>
+
+<label for="log">Received:</label><br>
+<samp id="log"></samp>
+
+</body>
+</html>
+
+<script>
+const ws = new WebSocket(`wss://${location.host}/ws`);
+
+const out_log = document.getElementById("log")
+const inp_msg = document.getElementById("msg")
+const btn_send = document.getElementById("send")
+
+
+function log(str){
+    out_log.innerHTML = str + '<br>' + out_log.innerHTML;
+}
+
+ws.onmessage = ev => {log(ev.data)};
+
+const send = () => {
+    ws.send(inp_msg.value)
+}
+
+btn_send.onclick = send
+inp_msg.addEventListener("keypress", function(e) {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+        send();
+    }
+});
+
+</script>

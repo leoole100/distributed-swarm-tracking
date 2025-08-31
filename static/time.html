@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WS Test</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<h1>WS Test</h1>
+<button id="sync">Sync</button>
+<input type="checkbox" id="autoSync" checked>
+<label for="autoSync">Auto Sync</label>
+
+<p></p>
+<label for="syncInterval">Sync Interval (ms):</label>
+<input type="number" id="syncInterval" value="100" min="10">
+<p></p>
+
+<div>
+    <label for="ping">Ping:</label>
+    <span id="ping"></span>
+</div>
+<div>
+    <label for="offsetChange">Offset Change:</label>
+    <span id="offsetChange"></span>
+</div>
+<div>
+    <label for="currentTime">Current Time:</label>
+    <span id="currentTime"></span>
+</div>
+<div>
+    <label for="rmsOffset">RMS Offset Adjustment:</label>
+    <span id="rmsOffset"></span>
+</div>
+
+</body>
+</html>
+
+<script>
+const ws = new WebSocket(`wss://${location.host}/ws`);
+
+const pingSpan = document.getElementById("ping");
+const offsetChangeSpan = document.getElementById("offsetChange");
+const currentTimeSpan = document.getElementById("currentTime");
+const rmsOffsetSpan = document.getElementById("rmsOffset");
+const autoSyncCheckbox = document.getElementById("autoSync");
+const btn_sync = document.getElementById("sync");
+const syncIntervalInput = document.getElementById("syncInterval");
+
+// Array to store offset adjustments for RMS calculation
+let offsetAdjustments = [];
+
+// Flag to indicate if the initial sync has been performed.
+let initialSync = true;
+
+const timeSync = {
+    offset: 0,
+    sync: function() {
+        return new Promise((resolve) => {
+            const start = performance.now() / 1000;
+            ws.send("time");
+            ws.addEventListener("message", function handler(event) {
+                const end = performance.now() / 1000;
+                const ping = end - start; // seconds
+                const serverTime = Number(event.data);
+                const computedOffset = serverTime - ((start + end) / 2);
+                const offsetChange = computedOffset - timeSync.offset;
+                timeSync.offset = computedOffset;
+                ws.removeEventListener("message", handler);
+                resolve({ ping: ping, offsetChange: offsetChange });
+            });
+        });
+    },
+    currentTime: function() {
+        return (performance.now() / 1000) + this.offset;
+    }
+};
+
+function updateRMSDisplay(newOffsetChange) {
+    // Add the new offset change value to the array
+    offsetAdjustments.push(newOffsetChange);
+    // Compute RMS
+    const sumSquares = offsetAdjustments.reduce((sum, val) => sum + val * val, 0);
+    const rms = Math.sqrt(sumSquares / offsetAdjustments.length);
+    // Update display (convert to milliseconds)
+    rmsOffsetSpan.textContent = (rms * 1000).toFixed(3) + " ms";
+}
+
+function sync_with_display(){
+    timeSync.sync().then(result => {
+        pingSpan.textContent = Math.round(result.ping * 1000) + " ms";
+        offsetChangeSpan.textContent = (result.offsetChange * 1000).toFixed(3) + " ms";
+        // For the very first sync, do not calculate RMS.
+        if (!initialSync) {
+            updateRMSDisplay(result.offsetChange);
+        } else {
+            initialSync = false;
+        }
+    });
+}
+
+// Perform an initial sync on page load.
+sync_with_display();
+
+// Update current time display repeatedly.
+setInterval(() => {
+    currentTimeSpan.textContent = timeSync.currentTime().toFixed(3);
+}, 100);
+
+// Schedule periodic sync.
+(function scheduleSync() {
+    const interval = Number(syncIntervalInput.value);
+    setTimeout(() => {
+        if (autoSyncCheckbox.checked) {
+            sync_with_display();
+        }
+        scheduleSync();
+    }, interval);
+})();
+
+btn_sync.onclick = sync_with_display;
+</script>

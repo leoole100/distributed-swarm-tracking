@@ -1,96 +1,28 @@
-:root {
-  color-scheme: light dark;
-  --bg: canvas;
-  --text: canvastext;
-  --muted: color-mix(in oklab, var(--text) 50%, transparent);
-  --surface: color-mix(in oklab, var(--bg) 85%, var(--text));
-  --ring: color-mix(in oklab, var(--text) 15%, transparent);
-  --border: color-mix(in oklab, var(--text) 12%, transparent);
-  --shadow: #0003;
+#connection {
+	position: fixed;
+	top: 0;
+	right: 0;
+	padding: 10px;
+	margin: 10px;
+	z-index: 1000;
 }
 
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+img {
+	/* max-height: 70vh; */
+	max-width: 100%;
+}
+
+* {
+	font-family: roboto;
+	color-scheme: light dark;
+}
 
 body {
-  margin: 1.5rem;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: var(--bg);
-  color: var(--text);
+	margin: 0 auto;
+	max-width: 800px;
+	padding: 20px;
 }
 
-h1 { margin: 0 0 1rem; font-size: clamp(1.2rem, 3vw, 1.6rem); }
-
-button, input, select {
-  font: inherit;
-  padding: .35rem .6rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-}
-
-a { color: inherit; }
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  align-items: start;
-}
-
-.tile {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px;
-  background: color-mix(in oklab, var(--bg) 92%, var(--text) 8%);
-  box-shadow: 0 4px 12px var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Header line (camId + state + actions) */
-.tile-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.camid { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.state { font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; opacity: .7; }
-
-/* Video wrapper keeps aspect-ratio per-tile */
-.video-wrap {
-  position: relative;
-  width: 100%;
-  /* default AR; JS updates this inline -> style.aspectRatio = `${w} / ${h}` */
-  aspect-ratio: 16 / 9;
-  background: #000;
-  border-radius: 8px;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-}
-
-/* The <video> stretches to wrapper, preserving content via object-fit */
-video.stream {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* preserve AR without cropping; use 'cover' if you prefer fill */
-  display: block;
-}
-
-/* Small corner badge (optional, used for camId mirror) */
-.badge {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 2px 6px;
-  font-size: 12px;
-  border-radius: 999px;
-  background: color-mix(in oklab, #000 70%, transparent);
-  color: #fff;
-  pointer-events: none;
-  user-select: none;
+pre, samp, input {
+	font-family: 'Roboto Mono', monospace;
 }
