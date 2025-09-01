@@ -57,11 +57,10 @@ const log = (...a)=>{ console.log(a) };
     const passthrough = new TransformStream({
       transform(chunk, controller) {
         // Chrome provides chunk.timestamp in MICROseconds.
-        const time = chunk.timestamp ?? 0;
+        const time = chunk.timestamp;  // TODO replace with 
 
         if (dc.readyState === 'open') {
           dc.send(JSON.stringify({ frame_id, time }));
-          console.log({ frame_id, time })
         }
 
         frame_id++;
