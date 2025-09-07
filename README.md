@@ -22,11 +22,13 @@ openssl req -x509 -nodes -newkey rsa:2048 \
         2. ~~add time stamping~~
         3. add a option to preview the video feeds
     4. add recording and file readers.
-2. calibrate intrinsics and extrinsics of the cameras.
+2. calibrate of the cameras.
+    1. ~~intrinsic~~
+    2. extrinsic
 3. write detection and tracking algorithms
-    - Voxel Rendering like [(YouTube: Dunking on Elon by actually tracking Stealth fighters using cheap webcameras without AI. #SoME4, 2025)](https://youtube.com/watch?v=zFiubdrJqqI) is way more expensive than eager 2d detection filtered to 3d detection.\
+    - _Voxel Rendering like [(YouTube: Dunking on Elon by actually tracking Stealth fighters using cheap webcameras without AI. #SoME4, 2025)](https://youtube.com/watch?v=zFiubdrJqqI) is way more expensive than eager 2d detection filtered to 3d detection.\
     Let there for example be $n\sim 10$ Cameras with on average $N\sim10^6$ pixels or $D\sim 100$ possible detections and a voxel grid of $V\sim 10^3$ resolution.\
-    The voxel algorithm will do $V^3 n N\sim 10^{16}$ projections (4x4 matrix vector multiplication + accumulate), a 2d detection and 3d filtering system will handle $n^2 D^2\sim 10^6$ detection-detection comparisons.
+    The voxel algorithm will do $V^3 n N\sim 10^{16}$ projections (4x4 matrix vector multiplication + accumulate), a 2d detection and 3d filtering system will handle $n^2 D^2\sim 10^6$ detection-detection comparisons._
     1. ~~preprocessing [(OpenCV: Background Subtraction)](https://docs.opencv.org/3.4/d8/d38/tutorial_bgsegm_bg_subtraction.html)~~
     2. 2d detections
     3. 3d detections / filtering
