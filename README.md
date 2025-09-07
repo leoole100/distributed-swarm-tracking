@@ -1,8 +1,6 @@
 # Distributed Swarm Tracking
 
-Smartphone‑based multi‑camera system for background subtraction, multi‑view reprojection, and 3D tracking of birds/insects for collective behavior studies.
-Inspired by [(YouTube: Dunking on Elon by actually tracking Stealth fighters using cheap webcameras without AI. #SoME4, 2025)](https://youtube.com/watch?v=zFiubdrJqqI).
-
+Smartphone‑based multi‑camera system for 3D tracking of particles/birds/insects/planes/etc.
 
 ## Install
 ```bash
@@ -24,13 +22,12 @@ openssl req -x509 -nodes -newkey rsa:2048 \
         2. ~~add time stamping~~
         3. add a option to preview the video feeds
     4. add recording and file readers.
-2. try preprocessing, projection and detection algorithms offline. 
-    1. get the last frame from each camera, if it is not older than let's say `100 ms` and assume they are concurrently. Alternative approaches can be implemented in the future.
-    2. High pass filtering in time is the easiest way to subtract the background. 
-        - Try other schemes in the future. [(OpenCV: Background Subtraction)](https://docs.opencv.org/3.4/d8/d38/tutorial_bgsegm_bg_subtraction.html)
-    3. Voxel rendering, like [(YouTube: Dunking on Elon by actually tracking Stealth fighters using cheap webcameras without AI. #SoME4, 2025)](https://youtube.com/watch?v=zFiubdrJqqI), produces something similar to *limited angle tomography*. But seems costly. For $N$ captured pixels and $n^3$ Voxels the complexity is in the order $\mathcal{O}(N n)$ to create the volume.
-    4. A alternative Approach is to do detections in the frame and filter out false positives. For $M$ detections (worst case the pixel number) with $k$ Cameras there have to be $\mathcal{O}(M^2 k)$ operations, as every detection has to be compared to each and the possible ray intersection evaluated. **TODO: Double Check**
-    This is similar to $\mathcal{O}(M^2) > \mathcal{O}(N n)$, as $n<M\lesssim N$.
-
-3. speed up the algorithms to run in real time and implement them to interface with the rest. 
-4. just save the tracking data, to enable longer observations.
+2. calibrate intrinsics and extrinsics of the cameras.
+3. write detection and tracking algorithms
+    - Voxel Rendering like [(YouTube: Dunking on Elon by actually tracking Stealth fighters using cheap webcameras without AI. #SoME4, 2025)](https://youtube.com/watch?v=zFiubdrJqqI) is way more expensive than eager 2d detection filtered to 3d detection.\
+    Let there for example be $n\sim 10$ Cameras with on average $N\sim10^6$ pixels or $D\sim 100$ possible detections and a voxel grid of $V\sim 10^3$ resolution.\
+    The voxel algorithm will do $V^3 n N\sim 10^{16}$ projections (4x4 matrix vector multiplication + accumulate), a 2d detection and 3d filtering system will handle $n^2 D^2\sim 10^6$ detection-detection comparisons.
+    1. ~~preprocessing [(OpenCV: Background Subtraction)](https://docs.opencv.org/3.4/d8/d38/tutorial_bgsegm_bg_subtraction.html)~~
+    2. 2d detections
+    3. 3d detections / filtering
+3. speed up the algorithms to run in real time and integrate them. 
