@@ -15,12 +15,13 @@ openssl req -x509 -nodes -newkey rsa:2048 \
 1. get synchronized video streaming and recording to work. Record a test dataset. 
     1. ~~HTML+WS server~~
     2. ~~Time distribution~~ 
-        - RMS error of `1.6 ms` at `10 ms` ping, with a sync every `100 ms`.
+        - _RMS error of `1.6 ms` at `10 ms` ping, with a sync every `100 ms`._
         - revisit once RTC Data streams work. Implement 4 timestamps, best of, and PLL.
     3. Video Stream
         1. ~~get the publishing of the feeds to work~~
         2. ~~add time stamping~~
-        3. add a option to preview the video feeds
+        3. integrate time distribution and video stream
+        - add a option to preview the video feeds
     4. add recording and file readers.
 2. calibrate of the cameras.
     1. ~~intrinsic~~

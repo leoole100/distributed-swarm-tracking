@@ -14,9 +14,7 @@ app.add_routes([
 
     web.get("/api/time", time_handler),
 
-    web.get("/api/webrtc/publish", vs.offer),
-    # web.post("/api/webrtc/view", vs.view_offer),
-    # web.get("/api/webrtc/stats", vs.stats),
+    web.get("/api/webrtc/publish", vs.offer)
 ])
 
 
